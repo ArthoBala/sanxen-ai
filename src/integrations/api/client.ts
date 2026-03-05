@@ -1,7 +1,15 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:4002";
+// In production (Vercel), use relative /api path so frontend and backend share the same domain.
+// In development, use the local backend URL from .env.
+const isProduction = import.meta.env.PROD;
+const BASE_URL = isProduction
+  ? ""
+  : (import.meta.env.VITE_API_BASE_URL || "http://localhost:4002");
+
+const API_PREFIX = isProduction ? "/api" : "";
 
 // Log the API URL on startup for debugging
-console.log("[API Client] Connecting to:", BASE_URL);
+console.log("[API Client] Mode:", isProduction ? "production" : "development");
+console.log("[API Client] Connecting to:", isProduction ? "(same domain)/api" : BASE_URL);
 
 function getToken() {
   return localStorage.getItem("token") || "";
@@ -20,7 +28,7 @@ async function request(path: string, options: RequestOptions = {}) {
   const controller = timeoutMs ? new AbortController() : undefined;
   const timeoutId = timeoutMs ? setTimeout(() => controller?.abort(), timeoutMs) : undefined;
   
-  const url = `${BASE_URL}${path}`;
+  const url = `${BASE_URL}${API_PREFIX}${path}`;
   console.log("[API Client] Request:", options.method || "GET", url);
   
   try {

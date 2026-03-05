@@ -173,7 +173,7 @@ function authMiddleware(req, res, next) {
   }
 }
 
-app.get("/", (_req, res) => {
+app.get("/api", (_req, res) => {
   res.json({ 
     ok: true, 
     message: "Sanxen AI Server is running",
@@ -182,11 +182,11 @@ app.get("/", (_req, res) => {
   });
 });
 
-app.get("/health", (_req, res) => {
+app.get("/api/health", (_req, res) => {
   res.json({ ok: true, mode: db && typeof db.collection === 'function' ? 'db' : 'memory' });
 });
 
-app.post("/auth/sign-up", async (req, res) => {
+app.post("/api/auth/sign-up", async (req, res) => {
   const { email, password, fullName } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: "Missing fields" });
   const users = db.collection("users");
@@ -204,7 +204,7 @@ app.post("/auth/sign-up", async (req, res) => {
   res.json({ token, user: { id: insertedId.toString(), email, full_name: user.full_name } });
 });
 
-app.post("/auth/sign-in", async (req, res) => {
+app.post("/api/auth/sign-in", async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: "Missing fields" });
   const users = db.collection("users");
@@ -217,7 +217,7 @@ app.post("/auth/sign-in", async (req, res) => {
 });
 
 // Admin: list all users
-app.get("/admin/list-users", async (req, res) => {
+app.get("/api/admin/list-users", async (req, res) => {
   const { secret } = req.query || {};
   if (secret !== JWT_SECRET) return res.status(403).json({ error: "Forbidden" });
   const users = db.collection("users");
@@ -226,7 +226,7 @@ app.get("/admin/list-users", async (req, res) => {
 });
 
 // Admin password reset (no auth needed - only works from localhost)
-app.post("/admin/reset-password", async (req, res) => {
+app.post("/api/admin/reset-password", async (req, res) => {
   const { email, newPassword, adminSecret } = req.body || {};
   if (adminSecret !== JWT_SECRET) return res.status(403).json({ error: "Forbidden" });
   if (!email || !newPassword) return res.status(400).json({ error: "Missing email or newPassword" });
@@ -254,7 +254,7 @@ function createEmailTransporter() {
 }
 
 // Send OTP for password reset
-app.post("/auth/forgot-password", async (req, res) => {
+app.post("/api/auth/forgot-password", async (req, res) => {
   const { email } = req.body || {};
   if (!email) return res.status(400).json({ error: "Email is required" });
 
@@ -293,7 +293,7 @@ app.post("/auth/forgot-password", async (req, res) => {
 });
 
 // Verify OTP and reset password
-app.post("/auth/reset-password", async (req, res) => {
+app.post("/api/auth/reset-password", async (req, res) => {
   const { email, otp, newPassword } = req.body || {};
   if (!email || !otp || !newPassword) return res.status(400).json({ error: "Email, OTP and new password are required" });
 
@@ -313,11 +313,11 @@ app.post("/auth/reset-password", async (req, res) => {
   res.json({ success: true, message: "Password reset successfully" });
 });
 
-app.post("/auth/sign-out", authMiddleware, async (_req, res) => {
+app.post("/api/auth/sign-out", authMiddleware, async (_req, res) => {
   res.json({ success: true });
 });
 
-app.get("/admin/has-role", authMiddleware, async (req, res) => {
+app.get("/api/admin/has-role", authMiddleware, async (req, res) => {
   const { userId, role } = req.query;
   if (!userId || !role) return res.json({ isAdmin: false });
   const email = typeof req.user?.email === "string" ? req.user.email.toLowerCase() : "";
@@ -329,7 +329,7 @@ app.get("/admin/has-role", authMiddleware, async (req, res) => {
   res.json({ isAdmin: !!has });
 });
 
-app.post("/usage/get", authMiddleware, async (req, res) => {
+app.post("/api/usage/get", authMiddleware, async (req, res) => {
   const { userId, featureType } = req.body || {};
   if (!userId || !featureType) return res.status(400).json({ error: "Missing fields" });
   const usage = db.collection("usage");
@@ -347,7 +347,7 @@ app.post("/usage/get", authMiddleware, async (req, res) => {
   });
 });
 
-app.post("/usage/reset", authMiddleware, async (req, res) => {
+app.post("/api/usage/reset", authMiddleware, async (req, res) => {
   const { userId, featureType } = req.body || {};
   if (!userId) return res.status(400).json({ error: "Missing userId" });
   const usage = db.collection("usage");
@@ -356,7 +356,7 @@ app.post("/usage/reset", authMiddleware, async (req, res) => {
   res.json({ success: true });
 });
 
-app.get("/chats", authMiddleware, async (req, res) => {
+app.get("/api/chats", authMiddleware, async (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ error: "Missing userId" });
   const chats = db.collection("chats");
@@ -364,7 +364,7 @@ app.get("/chats", authMiddleware, async (req, res) => {
   res.json(list.map(c => ({ ...c, id: c._id.toString() })));
 });
 
-app.post("/chats", authMiddleware, async (req, res) => {
+app.post("/api/chats", authMiddleware, async (req, res) => {
   const { userId, title } = req.body || {};
   if (!userId || !title) return res.status(400).json({ error: "Missing fields" });
   const chats = db.collection("chats");
@@ -373,7 +373,7 @@ app.post("/chats", authMiddleware, async (req, res) => {
   res.json({ id: insertedId.toString(), ...doc });
 });
 
-app.patch("/chats/:id", authMiddleware, async (req, res) => {
+app.patch("/api/chats/:id", authMiddleware, async (req, res) => {
   const { id } = req.params;
   const { title } = req.body || {};
   if (!id || !title) return res.status(400).json({ error: "Missing fields" });
@@ -382,7 +382,7 @@ app.patch("/chats/:id", authMiddleware, async (req, res) => {
   res.json({ success: true });
 });
 
-app.delete("/chats/:id", authMiddleware, async (req, res) => {
+app.delete("/api/chats/:id", authMiddleware, async (req, res) => {
   const { id } = req.params;
   if (!id) return res.status(400).json({ error: "Missing id" });
   const chats = db.collection("chats");
@@ -390,7 +390,7 @@ app.delete("/chats/:id", authMiddleware, async (req, res) => {
   res.json({ success: true });
 });
 
-app.get("/messages", authMiddleware, async (req, res) => {
+app.get("/api/messages", authMiddleware, async (req, res) => {
   const { chatId } = req.query;
   if (!chatId) return res.status(400).json({ error: "Missing chatId" });
   const messages = db.collection("messages");
@@ -398,7 +398,7 @@ app.get("/messages", authMiddleware, async (req, res) => {
   res.json(list.map(m => ({ id: m._id.toString(), chat_id: m.chat_id, role: m.role, content: m.content, created_at: m.created_at, media_url: m.media_url || null, media_type: m.media_type || null, type: m.type || "text_response" })));
 });
 
-app.post("/messages", authMiddleware, async (req, res) => {
+app.post("/api/messages", authMiddleware, async (req, res) => {
   const { id, chat_id, role, content, created_at, media_url, media_type, type } = req.body || {};
   if (!chat_id || !role || !content) return res.status(400).json({ error: "Missing fields" });
   const messages = db.collection("messages");
@@ -407,14 +407,14 @@ app.post("/messages", authMiddleware, async (req, res) => {
   res.json({ id: insertedId.toString(), ...doc });
 });
 
-app.delete("/messages", authMiddleware, async (req, res) => {
+app.delete("/api/messages", authMiddleware, async (req, res) => {
   const { chatId } = req.query;
   if (!chatId) return res.status(400).json({ error: "Missing chatId" });
   const messages = db.collection("messages");
   await messages.deleteMany({ chat_id: chatId });
   res.json({ success: true });
 });
-app.post("/ai/chat", authMiddleware, async (req, res) => {
+app.post("/api/ai/chat", authMiddleware, async (req, res) => {
   const { message, conversationHistory } = req.body || {};
   
   console.log("[AI Chat] Received request:", { message: message?.substring(0, 50), historyLength: conversationHistory?.length });
